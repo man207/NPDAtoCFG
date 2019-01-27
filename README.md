@@ -1,6 +1,7 @@
 # npdatocfg
 
 Source files are at: resources/app
+
 to open the app: download this rep and open npda2cfg.exe
 
 ### Used Libraries:
