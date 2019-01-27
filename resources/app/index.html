@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<!-- saved from url=(0071)http://visjs.org/examples/network/other/manipulationEditEdgeNoDrag.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <title>NPDA 2 CFG</title>
+
+  <style type="text/css">
+    body, select {
+      font: 10pt sans;
+    }
+    #mynetwork {
+      float: left;
+      background-color:white;
+      position:relative;
+      width: 640px;
+      height: 480px;
+      border: 1px solid lightgray;
+    }
+    #cfg-d{
+      overflow: hidden;
+      float: left;
+      background-color:white;
+      width: 300px;
+      height: 480px;
+      overflow-y: auto;
+      border: 1px solid lightgray;
+    }
+    #cfg-d p {
+      margin: 0;
+      background-color: #eee;
+      color: black;
+      display: block;
+      padding: 12px;
+      text-decoration: none;
+    }
+    table.legend_table {
+      font-size: 11px;
+      border-width:1px;
+      border-color:#d3d3d3;
+      border-style:solid;
+    }
+    table.legend_table,td {
+      border-width:1px;
+      border-color:#d3d3d3;
+      border-style:solid;
+      padding: 2px;
+    }
+    div.table_content {
+      width:80px;
+      text-align:center;
+    }
+    div.table_description {
+      width:100px;
+    }
+
+    #operation {
+      font-size:28px;
+    }
+    #node-popUp {
+      display:none;
+      position:absolute;
+      top:350px;
+      left:170px;
+      z-index:299;
+      width:250px;
+      height:90px;
+      background-color: #f9f9f9;
+      border-style:solid;
+      border-width:3px;
+      border-color: #5394ed;
+      padding:10px;
+      text-align: center;
+    }
+    #edge-popUp {
+      display:none;
+      position:absolute;
+      top:350px;
+      left:170px;
+      z-index:299;
+      width:250px;
+      height:90px;
+      background-color: #f9f9f9;
+      border-style:solid;
+      border-width:3px;
+      border-color: #5394ed;
+      padding:10px;
+      text-align: center;
+    }
+  </style>
+  <script type="text/javascript" src="./libs/vis.js"></script>
+  <link href="./libs/vis-network.min.css" rel="stylesheet" type="text/css">
+  <link href="./libs/ionicons.min.css" rel="stylesheet" type="text/css">
+
+  <script type="text/javascript">
+    var nodes = null;
+    var edges = null;
+    var network = null;
+    // randomly create some nodes and edges
+    var data = {
+        nodes: nodes,
+        edges: edges
+      }
+
+
+
+    function destroy() {
+      if (network !== null) {
+        network.destroy();
+        network = null;
+      }
+    }
+    function does_contain(array,content){
+        for(i=0;i<array.length;i++)
+          if(array[i]==content) return true;
+        return false;
+    }
+
+    function draw() {
+      destroy();
+      nodes = new vis.DataSet();
+      edges = new vis.DataSet();
+      var data = {
+        nodes: nodes,
+        edges: edges
+      }
+      // create a network
+      var container = document.getElementById('mynetwork');
+      
+      var options = {
+        nodes: {
+          
+          shape: "icon",
+          icon: {
+            face:'Ionicons',
+            code: '\uf1f6',
+            color: "#a0a0ff"
+          }
+
+        },
+      
+        manipulation: {
+          initiallyActive: true,
+          addNode: function (data, callback) {
+            // filling in the popup DOM elements
+            document.getElementById('node-operation').innerHTML = "Add Node";
+            editNode(data, clearNodePopUp, callback);
+          },
+          
+          editNode: function (data, callback) {
+            // filling in the popup DOM elements
+            document.getElementById('node-operation').innerHTML = "Edit Node";
+            editNodesec(data, cancelNodeEdit, callback);
+          },
+          
+          addEdge: function (data, callback) {
+            if (data.from == data.to) {
+              var r = confirm("Do you want to connect the node to itself?");
+              if (r != true) {
+                callback(null);
+                return;
+              }
+            }
+            document.getElementById('edge-operation').innerHTML = "Add Edge";
+            editEdgeWithoutDrag(data, callback);
+          },
+          editEdge: false,
+        }
+      };
+
+      network = new vis.Network(container, data, options);
+    }
+    function editNodesec(data, cancelAction, callback) {
+      document.getElementById('node-id').value = data.label;
+      document.getElementById('node-initial').checked = data.isinitial;
+      document.getElementById('node-final').checked = data.isfinal;
+      document.getElementById('node-saveButton').onclick = saveNodeDatasec.bind(this, data, callback);
+      document.getElementById('node-cancelButton').onclick = cancelAction.bind(this, callback);
+      document.getElementById('node-popUp').style.display = 'block';
+      document.getElementById('node-id').readOnly = true;
+    }
+    function editNode(data, cancelAction, callback) {
+      document.getElementById('node-id').value = data.label;
+      document.getElementById('node-initial').checked = data.isinitial;
+      document.getElementById('node-final').checked = data.isfinal;
+      document.getElementById('node-saveButton').onclick = saveNodeData.bind(this, data, callback);
+      document.getElementById('node-cancelButton').onclick = cancelAction.bind(this, callback);
+      document.getElementById('node-popUp').style.display = 'block';
+    }
+
+    // Callback passed as parameter is ignored
+    function clearNodePopUp() {
+      document.getElementById('node-saveButton').onclick = null;
+      document.getElementById('node-cancelButton').onclick = null;
+      document.getElementById('node-id').readOnly = false;
+      document.getElementById('node-popUp').style.display = 'none';
+    }
+
+    function cancelNodeEdit(callback) {
+      clearNodePopUp();
+      callback(null);
+    }
+
+    function saveNodeDatasec(data, callback) {
+
+      data.isinitial = document.getElementById('node-initial').checked;
+
+      if (data.isinitial) {
+          var xi = nodes.getIds();
+          for (var i in xi) {
+            data.icon.color ="#40406d"
+
+            nodes.update({id : xi[i] , isinitial:false, icon :{color : "#a0a0ff"}});
+          }
+      }
+      else {
+        data.icon.color = "#a0a0ff"
+      }
+      data.isfinal = document.getElementById('node-final').checked;
+      if (data.isfinal){
+        data.icon.code = "\uf1f7"
+      }
+      else {
+        data.icon.code = '\uf1f6'
+      }
+      clearNodePopUp();
+      callback(data);
+    }
+
+    function saveNodeData(data, callback) {
+      
+      if(does_contain(nodes.getIds(),document.getElementById('node-id').value)){
+                          window.alert('This Node Already Exists!');
+      }
+      else {
+        data.isinitial = document.getElementById('node-initial').checked;
+        if (data.isinitial) {
+          var xi = nodes.getIds();
+          for (var i in xi) {
+            nodes.update({id : xi[i] , isinitial:false,icon :{color : "#a0a0ff"}});
+          }
+        }
+        
+        data.isfinal = document.getElementById('node-final').checked;
+        data.id = document.getElementById('node-id').value;
+        data.label = document.getElementById('node-id').value;
+        data.isinitial = document.getElementById('node-initial').checked;
+        nodes.add(data)
+        if (data.isinitial) {
+          nodes.update({id:document.getElementById('node-id').value,icon:{color : "#40406d"}})
+        }
+        if (data.isfinal) {
+          nodes.update({id:document.getElementById('node-id').value,icon:{code : "\uf1f7"}})
+        }
+        clearNodePopUp();
+        callback(data);
+
+      }
+      
+    }
+
+    function editEdgeWithoutDrag(data, callback) {
+      // filling in the popup DOM elements
+      str1 = String(data.label)
+      if (str1 == "undefined"){
+        str1 = "λ,λ→λ"
+      }
+      document.getElementById('edge-input').value = str1.slice(0,1);
+      document.getElementById('edge-pop').value = str1.slice(2,3);
+      document.getElementById('edge-push').value = str1.slice(4);
+      document.getElementById('edge-saveButton').onclick = saveEdgeData.bind(this, data, callback);
+      document.getElementById('edge-cancelButton').onclick = cancelEdgeEdit.bind(this,callback);
+      document.getElementById('edge-popUp').style.display = 'block';
+    }
+
+    function clearEdgePopUp() {
+      document.getElementById('edge-saveButton').onclick = null;
+      document.getElementById('edge-cancelButton').onclick = null;
+      document.getElementById('edge-popUp').style.display = 'none';
+    }
+
+    function cancelEdgeEdit(callback) {
+      clearEdgePopUp();
+      callback(null);
+    }
+
+    function saveEdgeData(data, callback) {
+      console.log(edges.getIds())
+      if (typeof data.to === 'object')
+        data.to = data.to.id
+      if (typeof data.from === 'object')
+        data.from = data.from.id
+      str1 = data.to + "|" + document.getElementById('edge-input').value + "," + document.getElementById('edge-pop').value + "→" + document.getElementById('edge-push').value + "|" + data.from;
+      if(does_contain(edges.getIds(),str1)){
+                          window.alert('This Edge Already Exists!');
+                          return
+      }
+      
+      data.id = str1
+      data.label = document.getElementById('edge-input').value + "," + document.getElementById('edge-pop').value + "→" + document.getElementById('edge-push').value;
+      data.arrows="to"
+      edges.add(data)
+      clearEdgePopUp();
+      callback(data);
+      
+
+    } 
+
+    function cfgfier(){
+      var view1 = new vis.DataView(nodes, {
+        filter: function (item) {
+          return (item.isfinal == true);
+        },
+        fields: ['id']
+      });
+      var view2 = new vis.DataView(nodes, {
+        filter: function (item) {
+          return (item.isinitial == true);
+        },
+        fields: ['id']
+      });
+
+      const {PythonShell} = require('python-shell');
+
+      var pyshell = new PythonShell('./resources/app/out.py');
+
+      if (view2.length == 0){
+        alert("There is No Initial State")
+        return
+      }
+      if (view1.length == 0){
+        alert("There is No Final State")
+        return
+      }
+
+      pyshell.send(JSON.stringify(nodes.getIds()));
+      pyshell.send(JSON.stringify(edges.getIds()));
+      pyshell.send(JSON.stringify(view1.getIds()));
+      pyshell.send(JSON.stringify(view2.getIds()));
+      pyshell.send(JSON.stringify("→"));
+      pyshell.send(JSON.stringify("λ"));
+
+      pyshell.on('message', function (message) {
+          // received a message sent from the Python script (a simple "print" statement)
+          document.getElementById('cfg-d').innerHTML = message;
+      });
+
+      // end the input stream and allow the process to exit
+      pyshell.end(function (err) {
+          if (err){
+              throw err;
+          };
+        
+          console.log('finished');
+      });
+    }
+
+    function init() {
+      draw();
+    }
+
+  </script>
+  
+</head>
+
+<body onload="init();" style="background-color:lavender">
+<a href="javascript:window.close()" style="color: rgb(88, 47, 163); opacity: 0.7; position: absolute; font-size: 12px; text-decoration: none;">Close App</a>
+<h2 style="text-align: center">Simple NDFA2CFG</h2>
+
+<input type="button" value="GET CFG!" id="get-cfg" style="margin-right: 120px; float: right;  border: 1; background: none; box-shadow: none; border-radius: 0px;" onClick="cfgfier()">
+<p style="padding-left: 180px">Enter Your NPDA and Get a CFG!</p>
+<br>
+
+<div id="node-popUp" style="display: none;">
+  <span id="node-operation">Add Node</span> <br>
+  <table style="margin:auto;">
+    <tbody><tr>
+      <td>Name: </td><td><input id="node-id" value="q" maxlength="10" style="width: 10ch;" onClick="this.select();"></td>
+    </tr>
+    <tr>
+      <td>Is Final: <input type="checkbox" id="node-final" value="1"></td>
+      <td>Is Initial: <input type="checkbox" id="node-initial" value="1"></td>
+    </tr>
+  </tbody></table>
+  <input type="button" value="Save" id="node-saveButton">
+  <input type="button" value="Cancel" id="node-cancelButton">
+</div>
+
+<div id="edge-popUp" style="display: none;">
+  <span id="edge-operation">Add Edge</span> <br>
+  <table style="margin:auto;size:auto;">
+    <tbody><tr>
+        <td>Transition: </td><td><input id="edge-input" value="new value" maxlength="1" size="auto" style="width: 1ch;" onClick="this.select();" ></td>
+        <td>,</td><td><input id="edge-pop" value="new value" maxlength="1" style="width: 1ch;" onClick="this.select();"></td>
+        <td>→</td><td><input id="edge-push" value="new value" style="width: 10ch;" onClick="this.select();"></td>
+    </tr></tbody></table>
+  <input type="button" value="Save" id="edge-saveButton">
+  <input type="button" value="Cancel" id="edge-cancelButton">
+</div>
+
+<br>
+<div style="position:relative">
+<div id="mynetwork">
+  <div class="vis-network" tabindex="900" style="position: relative; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 100%;">
+  <canvas style="position: relative; touch-action: none; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0); width: 100%; height: 100%;" width="1250" height="938"></canvas>
+  <div class="vis-manipulation" style="display: block;"><div class="vis-button vis-add" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);">
+    <div class="vis-label">Add Node</div></div>
+    <div class="vis-separator-line"></div>
+    <div class="vis-button vis-connect" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);"><div class="vis-label">Add Edge</div></div>
+    <div class="vis-separator-line"></div>
+    <div class="vis-button vis-edit" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);"><div class="vis-label">Edit Edge</div></div>
+    <div class="vis-separator-line"></div>
+    <div class="vis-button vis-delete" style="touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);"><div class="vis-label">Delete selected</div></div></div><div class="vis-edit-mode" style="display: block;"></div>
+    <div class="vis-close" style="display: block; touch-action: pan-y; user-select: none; -webkit-user-drag: none; -webkit-tap-highlight-color: rgba(0, 0, 0, 0);"></div></div>
+  </div>
+  <div id="cfg-d">
+    <h2 style="text-align: center">CFG Will Be Show Here</h2>
+
+  </div>
+</div>
+
+</body></html>
