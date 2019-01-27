@@ -1,8 +1,8 @@
 # npdatocfg
 
-Source files are at: resources/app
+Source files are at: resources/app (to use with npm start)
 
-to open the app: download this rep and open npda2cfg.exe
+to open the app: download this rep and open npda2cfg.exe(python3 is required)
 
 ### Used Libraries:
 - vis.js for graph input
